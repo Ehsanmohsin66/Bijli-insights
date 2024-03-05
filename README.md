@@ -1,5 +1,10 @@
 # Bijli-insights
 
+#Purpose
+This solution was designed to read data from an IoT device supporting MQTT protocol and pushing data to a topic meter/iot/{msn}. Data is pushed to MySQL database after that.
+This repository was designed to demonstrate a POC and should not be taken as a full project
+
+
 #SET-UP
 1- Nodered installation. 
     - URL link for docker image is :- https://hub.docker.com/r/nodered/node-red/
