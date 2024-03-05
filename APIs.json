@@ -1,0 +1,480 @@
+[
+    {
+        "id": "85d21ca427dfaba3",
+        "type": "tab",
+        "label": "APIs",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "3bfb2daf4e685ab5",
+        "type": "http in",
+        "z": "85d21ca427dfaba3",
+        "name": "Meter data request",
+        "url": "/meter_data",
+        "method": "post",
+        "upload": true,
+        "swaggerDoc": "",
+        "x": 230,
+        "y": 200,
+        "wires": [
+            [
+                "4dd7ef06e8c72581"
+            ]
+        ]
+    },
+    {
+        "id": "c72c4926d3a40729",
+        "type": "http response",
+        "z": "85d21ca427dfaba3",
+        "name": "Energy data response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1020,
+        "y": 200,
+        "wires": []
+    },
+    {
+        "id": "4dd7ef06e8c72581",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Energy",
+        "func": "const msg_obj=msg.req.body;\nif (msg_obj.reqtype == \"EG\")\n{\n    \n    \nmsg.topic = \"Select msn,date_time,energy_reg,energy_reg_t1,energy_reg_t2,energy_reg_t3,energy_reg_t4 \"+\n\" from meter_data.energy_relay_status where msn='\"+msg_obj.msn+ \"' order by date_time desc limit 1;\"\n\nmsg.payload = [msg_obj.msn];\n\n} else if (msg_obj.reqtype == \"InstL1\")\n{\n    \n    \nmsg.topic = \"Select msn,date_time,voltage_L1,current_l1,kW_l1,PF_L1,Freq_L1 \"+\n\" from meter_data.inst_data_L1 where msn='\"+msg_obj.msn+\"' order by date_time desc limit 1;\"\n\nmsg.payload = [msg_obj.msn];\n\n} else if (msg_obj.reqtype == \"InstL2\")\n{\n    var msn= msg_obj.msn;\n    \nmsg.topic = \"Select msn,date_time,voltage_L2,current_l2,kW_l2,PF_L2,Freq_L2 \" +\n\" from meter_data.inst_data_L2 where msn='\"+msn+\"' order by date_time desc limit 1;\"\n\nmsg.payload = [msn];\n\n} else if (msg_obj.reqtype == \"InstL3\")\n{\n    var msn= msg_obj.msn;\n    \nmsg.topic = \"Select msn,date_time,voltage_L3,current_l3,kW_l3,PF_L3,Freq_L3 \" +\n\" from meter_data.inst_data_L3 where msn='\"+msn+\"' order by date_time desc limit 1;\"\n\nmsg.payload = [msn];\n\n} \nelse \n{\n    \nmsg.topic = \"\"\nmsg.payload = [];\n\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 420,
+        "y": 200,
+        "wires": [
+            [
+                "a576051d6dfd9df9"
+            ]
+        ]
+    },
+    {
+        "id": "23a30fb0fa20dd72",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Parse data from db",
+        "func": "if (msg.payload.length > 0)\n{\nvar msg_obj=msg.payload[0];\nmsg.payload=msg_obj;\nmsg.stausCode=200;\n}else\n{\nmsg.stausCode=404;\nmsg.payload={};\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 810,
+        "y": 200,
+        "wires": [
+            [
+                "c72c4926d3a40729"
+            ]
+        ]
+    },
+    {
+        "id": "67e0e30b98d7e3bb",
+        "type": "http in",
+        "z": "85d21ca427dfaba3",
+        "name": "Meter data by date request",
+        "url": "/meter_data_by_dates",
+        "method": "post",
+        "upload": true,
+        "swaggerDoc": "",
+        "x": 210,
+        "y": 320,
+        "wires": [
+            [
+                "47b18033f630e4a7"
+            ]
+        ]
+    },
+    {
+        "id": "5a596971a1a46c15",
+        "type": "http response",
+        "z": "85d21ca427dfaba3",
+        "name": "Energy data response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1000,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "47b18033f630e4a7",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Daily Energy",
+        "func": "const msg_obj=msg.req.body;\nif (msg_obj.reqtype == \"DEG\")\n{\n    \nif (msg_obj.reqsubtype == \"DAY\") \n{    \nmsg.topic = \"SELECT msn,date_time as datetime,\"+\n\"kwh_consumed,kwh_consumed_t1,kwh_consumed_t2,kwh_consumed_t3,kwh_consumed_t4\"+\n\" from meter_data.daily_energy_data where msn='\"+msg_obj.msn+\"' and date_time >= '\"+msg_obj.start_date_time+\"' and date_time <= DATE(DATE_ADD('\"+msg_obj.end_date_time+\"', INTERVAL 1 DAY));\"\n}\nelse if (msg_obj.reqsubtype == \"HOUR\") \n{    \nmsg.topic = \"Select msn,convert(COncat(convert(year(date_time) ,nchar),'-',\"+\n\"convert(month(date_time) , nchar),'-',convert(day(date_time),nchar),'T', convert(hour(date_time) , nchar),':00:00'),datetime) as datetime,\"+\n\"(max(energy_reg) - min(energy_reg)) as kwh_consumed,\"+\n\"(max(energy_reg_t1) - min(energy_reg_t1))  as kwh_consumed_t1,\"+\n\"(max(energy_reg_t2) - min(energy_reg_t2)) as kwh_consumed_t2,\"+\n\"(max(energy_reg_t3) - min(energy_reg_t3)) as kwh_consumed_t3,\"+\n\"(max(energy_reg_t4) - min(energy_reg_t4)) as kwh_consumed_t4 \"+\n\"from meter_data.energy_relay_status \"+\n\"where msn='\"+msg_obj.msn+\"' and date_time > convert('\"+msg_obj.start_date_time+\"',datetime) \"+\n\" and date_time < convert('\"+msg_obj.end_date_time+\"',datetime) \"+\n\"group by msn,datetime;\" \n}\nmsg.payload = [msg_obj.msn];\n\n} else if (msg_obj.reqtype == \"DInstL1\")\n{\n    \n    \nmsg.topic = \"Select msn,avg(voltage_L1),avg(current_l1),avg(kW_l1),avg(PF_L1),avg(Freq_L1) \" +\n\" from meter_data.inst_data_L1 where msn='\"+msg_obj.msn+\"' and date_time > convert('\"+msg_obj.start_date_time+\"',datetime) \"+\n\" and date_time < convert('\"+msg_obj.end_date_time+\"',datetime);\"\n\nmsg.payload = [msg_obj.msn];\n\n} else if (msg_obj.reqtype == \"DInstL2\")\n{\n   \n    \nmsg.topic = \"Select msn,avg(voltage_L2),avg(current_l2),avg(kW_l2),avg(PF_L2),avg(Freq_L2) \" +\n\" from meter_data.inst_data_L2 where msn='\"+msg_obj.msn+\"' and date_time > convert('\"+msg_obj.start_date_time+\"',datetime) \"+\n\" and date_time < convert('\"+msg_obj.end_date_time+\"',datetime);\"\n\nmsg.payload = [msg_obj.msn];\n\n} else if (msg_obj.reqtype == \"DInstL3\")\n{\n    \n    \nmsg.topic = \"Select msn,avg(voltage_L3),avg(current_l3),avg(kW_l3),avg(PF_L3),avg(Freq_L3) \" +\n\" from meter_data.inst_data_L3 where msn='\"+msg_obj.msn+\"' and date_time > convert('\"+msg_obj.start_date_time+\"',datetime) \"+\n\" and date_time < convert('\"+msg_obj.end_date_time+\"',datetime);\"\n\nmsg.payload = [msg_obj.msn];\n\n} \nelse \n{\n    \nmsg.topic = \"\"\nmsg.payload = [];\n\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 320,
+        "wires": [
+            [
+                "8a9f0be4e3fbf3ec"
+            ]
+        ]
+    },
+    {
+        "id": "ce1703869fefa6e9",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Parse data from db",
+        "func": "if (msg.payload.length > 0)\n{\nvar msg_obj=msg.payload;\nmsg.payload=msg_obj;\nmsg.stausCode=200;\n}else\n{\nmsg.stausCode=404;\nmsg.payload={};\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 320,
+        "wires": [
+            [
+                "5a596971a1a46c15"
+            ]
+        ]
+    },
+    {
+        "id": "288b8abf277a76a1",
+        "type": "http in",
+        "z": "85d21ca427dfaba3",
+        "name": "Billing data request",
+        "url": "/billing_data",
+        "method": "post",
+        "upload": true,
+        "swaggerDoc": "",
+        "x": 270,
+        "y": 480,
+        "wires": [
+            [
+                "a2d451bd21714f81"
+            ]
+        ]
+    },
+    {
+        "id": "63135df01d27e092",
+        "type": "http response",
+        "z": "85d21ca427dfaba3",
+        "name": "Energy data response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1040,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "a2d451bd21714f81",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "billing",
+        "func": "const msg_obj=msg.req.body;\nif (msg_obj.reqtype == \"BEG\")\n{\n    \n    \nmsg.topic = \"Select msn,date_time,billing_year,billing_month,kwh_consumed,kwh_consumed_t1,kwh_consumed_t2,kwh_consumed_t3,kwh_consumed_t4 \"+\n\" from billing_data.billing_energy_data where msn='\"+msg_obj.msn+ \"' and billing_year=\"+msg_obj.billing_year+\n\" and billing_month=\"+msg_obj.billing_month +\";\"\n\nmsg.payload = [msg_obj.msn,msg_obj.billing_year,msg_obj.billing_month];\n\n} else if (msg_obj.reqtype == \"BDA\")\n{\n    \n    \nmsg.topic = msg.topic = \"Select msn,date_time,billing_year,billing_month,price_kwh_consumed,fixed_charges,arrears,sales_tax,total_bill \"+\n\" from billing_data.billing_data where msn='\"+msg_obj.msn+ \"' and billing_year=\"+msg_obj.billing_year+\n\" and billing_month=\"+msg_obj.billing_month +\";\"\n\nmsg.payload = [msg_obj.msn,msg_obj.billing_year,msg_obj.billing_month];\n\n\n\n} \nelse \n{\n    \nmsg.topic = \"\"\nmsg.payload = [];\n\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 430,
+        "y": 480,
+        "wires": [
+            [
+                "9ec80bc833ac7970"
+            ]
+        ]
+    },
+    {
+        "id": "32fd0af40f8bf97c",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Parse data from db",
+        "func": "if (msg.payload.length > 0)\n{\nvar msg_obj=msg.payload[0];\nmsg.payload=msg_obj;\nmsg.stausCode=200;\n}else\n{\nmsg.stausCode=404;\nmsg.payload={};\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 830,
+        "y": 480,
+        "wires": [
+            [
+                "63135df01d27e092"
+            ]
+        ]
+    },
+    {
+        "id": "fce867aecaf59f03",
+        "type": "http in",
+        "z": "85d21ca427dfaba3",
+        "name": "User login request",
+        "url": "/user_login",
+        "method": "post",
+        "upload": true,
+        "swaggerDoc": "",
+        "x": 220,
+        "y": 640,
+        "wires": [
+            [
+                "908d604f04be0243"
+            ]
+        ]
+    },
+    {
+        "id": "c2a29ea78defa05d",
+        "type": "http response",
+        "z": "85d21ca427dfaba3",
+        "name": "login data response",
+        "statusCode": "",
+        "headers": {},
+        "x": 1000,
+        "y": 640,
+        "wires": []
+    },
+    {
+        "id": "908d604f04be0243",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Login",
+        "func": "const msg_obj=msg.req.body;\nif (msg_obj.reqtype == \"login\")\n{\nmsg.topic = \"Select msn,full_name,last_login,num_logins \"+\n\" from billing_data.users_app where user_name=\"+msg_obj.user_name+\n\" and pass_word=md5(\"+msg_obj.pass_word +\");\"\n\nmsg.payload = [msg_obj.user_name,msg_obj.pass_word];\n\n}else \n{\n    \nmsg.topic = \"\"\nmsg.payload = [];\n\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 640,
+        "wires": [
+            [
+                "0901984528a89d80"
+            ]
+        ]
+    },
+    {
+        "id": "a9ec18e7c7828015",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Parse data from db",
+        "func": "if (msg.payload.length > 0)\n{\nvar msg_obj=msg.payload[0];\nmsg.payload=msg_obj;\nmsg.stausCode=200;\n}else\n{\nmsg.stausCode=404;\nmsg.payload={};\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 640,
+        "wires": [
+            [
+                "c2a29ea78defa05d"
+            ]
+        ]
+    },
+    {
+        "id": "785f312f6637f347",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "update new login time",
+        "func": "\nif (msg.payload.length > 0)\n{\nvar msg_obj=msg.payload[0];\nmsg.payload=msg_obj;\nmsg.topic = \"Update billing_data.users_app \"+\n\" SET last_login=now() , num_logins=\" + msg_obj.num_logins + \"+1 \"+\n\" where msn=\"+msg_obj.msn+\";\"\n\nmsg.payload = [msg_obj.num_logins,msg_obj.msn];\n\n}else \n{\n    \nmsg.topic = \"\"\nmsg.payload = {};\n\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 800,
+        "y": 720,
+        "wires": [
+            [
+                "f4039effb47d82dd"
+            ]
+        ]
+    },
+    {
+        "id": "0cf7aa540167ebc3",
+        "type": "http in",
+        "z": "85d21ca427dfaba3",
+        "name": "Contactor ON/OFF",
+        "url": "/contactor_on_off",
+        "method": "post",
+        "upload": true,
+        "swaggerDoc": "",
+        "x": 210,
+        "y": 800,
+        "wires": [
+            [
+                "76a298baffdce5c0"
+            ]
+        ]
+    },
+    {
+        "id": "7183e943aee21efc",
+        "type": "http response",
+        "z": "85d21ca427dfaba3",
+        "name": "login data response",
+        "statusCode": "",
+        "headers": {},
+        "x": 990,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "76a298baffdce5c0",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Relay on/off",
+        "func": "const msg_obj=msg.req.body;\nif (msg_obj.reqtype == \"ON_OFF\")\n{\n    var msn=msg_obj.msn;\n    if(msg_obj.new_status==\"OFF\")\n    {\n        msg.topic = \"Insert into meter_relay_commands \" +\n        \" SET msn=\"+msn+\",cmnd_sent_flag = false, new_status= 0, date_time = now();\"\n    }\n    else if (msg_obj.new_status==\"ON\")\n    {\n        msg.topic = \"Insert into meter_relay_commands \" +\n        \" SET msn=\"+msn+\",cmnd_sent_flag = false, new_status= 1, date_time = now();\"\n    }\n\nmsg.payload = [msg_obj.msn,msg_obj.reqtype,msg_obj.new_status];\n\n}else \n{\n    \nmsg.topic = \"\"\nmsg.payload = [];\n\n}\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 800,
+        "wires": [
+            [
+                "69fd689a6e1648cb",
+                "d8eb606363c1d88b"
+            ]
+        ]
+    },
+    {
+        "id": "a5db6cd87c9f991f",
+        "type": "function",
+        "z": "85d21ca427dfaba3",
+        "name": "Parse data from db",
+        "func": "if (msg.payload.length > 0)\n{\nvar msg_obj=msg.payload;\nmsg.payload=msg_obj;\nmsg.stausCode=200;\n}else\n{\nmsg.stausCode=404;\nmsg.payload={};\n}\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 780,
+        "y": 800,
+        "wires": [
+            [
+                "7183e943aee21efc"
+            ]
+        ]
+    },
+    {
+        "id": "d8eb606363c1d88b",
+        "type": "debug",
+        "z": "85d21ca427dfaba3",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 590,
+        "y": 880,
+        "wires": []
+    },
+    {
+        "id": "8a9f0be4e3fbf3ec",
+        "type": "mysql",
+        "z": "85d21ca427dfaba3",
+        "mydb": "6936de6f43d07bb1",
+        "name": "meter_data",
+        "x": 610,
+        "y": 320,
+        "wires": [
+            [
+                "ce1703869fefa6e9"
+            ]
+        ]
+    },
+    {
+        "id": "9ec80bc833ac7970",
+        "type": "mysql",
+        "z": "85d21ca427dfaba3",
+        "mydb": "9ff6ad01e7e74a1b",
+        "name": "billing_data",
+        "x": 650,
+        "y": 480,
+        "wires": [
+            [
+                "32fd0af40f8bf97c"
+            ]
+        ]
+    },
+    {
+        "id": "0901984528a89d80",
+        "type": "mysql",
+        "z": "85d21ca427dfaba3",
+        "mydb": "9ff6ad01e7e74a1b",
+        "name": "billing_data",
+        "x": 590,
+        "y": 640,
+        "wires": [
+            [
+                "a9ec18e7c7828015",
+                "785f312f6637f347"
+            ]
+        ]
+    },
+    {
+        "id": "f4039effb47d82dd",
+        "type": "mysql",
+        "z": "85d21ca427dfaba3",
+        "mydb": "9ff6ad01e7e74a1b",
+        "name": "billing_data",
+        "x": 1110,
+        "y": 720,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "69fd689a6e1648cb",
+        "type": "mysql",
+        "z": "85d21ca427dfaba3",
+        "mydb": "6936de6f43d07bb1",
+        "name": "meter_data",
+        "x": 580,
+        "y": 800,
+        "wires": [
+            [
+                "a5db6cd87c9f991f"
+            ]
+        ]
+    },
+    {
+        "id": "a576051d6dfd9df9",
+        "type": "mysql",
+        "z": "85d21ca427dfaba3",
+        "mydb": "6936de6f43d07bb1",
+        "name": "meter_data",
+        "x": 630,
+        "y": 240,
+        "wires": [
+            [
+                "23a30fb0fa20dd72"
+            ]
+        ]
+    },
+    {
+        "id": "6936de6f43d07bb1",
+        "type": "MySQLdatabase",
+        "name": "meter_data",
+        "host": "172.23.240.1",
+        "port": "3306",
+        "db": "test_finalto",
+        "tz": "+05:00",
+        "charset": "UTF8"
+    },
+    {
+        "id": "9ff6ad01e7e74a1b",
+        "type": "MySQLdatabase",
+        "name": "billing_data",
+        "host": "164.92.148.47",
+        "port": "3306",
+        "db": "billing_data",
+        "tz": "+05:00",
+        "charset": "UTF8"
+    }
+]

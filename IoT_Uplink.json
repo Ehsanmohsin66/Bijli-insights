@@ -1,0 +1,175 @@
+[
+    {
+        "id": "8b8375eb6d616f1b",
+        "type": "tab",
+        "label": "For Iot_uplink",
+        "disabled": false,
+        "info": ""
+    },
+    {
+        "id": "8ded3c1697314e50",
+        "type": "comment",
+        "z": "8b8375eb6d616f1b",
+        "name": "WARNING: please check you have started this container with a volume that is mounted to /data\\n otherwise any flow changes are lost when you redeploy or upgrade the container\\n (e.g. upgrade to a more recent node-red docker image).\\n  If you are using named volumes you can ignore this warning.\\n Double click or see info side panel to learn how to start Node-RED in Docker to save your work",
+        "info": "\nTo start docker with a bind mount volume (-v option), for example:\n\n```\ndocker run -it -p 1880:1880 -v /home/user/node_red_data:/data --name mynodered nodered/node-red\n```\n\nwhere `/home/user/node_red_data` is a directory on your host machine where you want to store your flows.\n\nIf you do not do this then you can experiment and redploy flows, but if you restart or upgrade the container the flows will be disconnected and lost. \n\nThey will still exist in a hidden data volume, which can be recovered using standard docker techniques, but that is much more complex than just starting with a named volume as described above.",
+        "x": 350,
+        "y": 80,
+        "wires": []
+    },
+    {
+        "id": "053562b325f3bb09",
+        "type": "mqtt in",
+        "z": "8b8375eb6d616f1b",
+        "name": "MQTT server",
+        "topic": "",
+        "qos": "2",
+        "datatype": "utf8",
+        "broker": "1c19cbbb84d96d75",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 1,
+        "x": 290,
+        "y": 380,
+        "wires": [
+            [
+                "fb3b0029e3efee7e",
+                "bb4a49cf55d10414"
+            ]
+        ]
+    },
+    {
+        "id": "fb3b0029e3efee7e",
+        "type": "debug",
+        "z": "8b8375eb6d616f1b",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 370,
+        "y": 240,
+        "wires": []
+    },
+    {
+        "id": "48af890a9ce0bb49",
+        "type": "inject",
+        "z": "8b8375eb6d616f1b",
+        "name": "pooling node",
+        "props": [
+            {
+                "p": "topic",
+                "vt": "str"
+            },
+            {
+                "p": "action",
+                "v": "subscribe",
+                "vt": "str"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": true,
+        "onceDelay": "0.1",
+        "topic": "meter/iotup/+",
+        "x": 130,
+        "y": 280,
+        "wires": [
+            [
+                "053562b325f3bb09"
+            ]
+        ]
+    },
+    {
+        "id": "bb4a49cf55d10414",
+        "type": "function",
+        "z": "8b8375eb6d616f1b",
+        "name": "",
+        "func": "var msn=msg.topic.substring(13); //Expected topic name ehsan/iotup/msn\nconst msg_obj=JSON.parse(msg.payload);\nif (msg_obj.Title == \"MEG\")\n{\n    var SY_node= msg_obj.SY;\n    var SM_node= msg_obj.SM;\n    var EY_node= msg_obj.EY;\n    var EM_node= msg_obj.EM;\n    var MEG_node= msg_obj.MEG;\n    var T1MEG_node= msg_obj.T1MEG;\n    var T2MEG_node= msg_obj.T2MEG;\n    var T3MEG_node= msg_obj.T3MEG;\n    var T4MEG_node= msg_obj.T4MEG;\n\n\n\nmsg.topic = \"INSERT INTO meter_data.monthly_energy_data (msn,date_time,start_year,start_month,end_year,end_month,kwh_consumed,kwh_consumed_t1,kwh_consumed_t2,kwh_consumed_t3,kwh_consumed_t4) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(SY_node)+\",\"+JSON.stringify(SM_node)+\",\"+JSON.stringify(EY_node)+\",\"+JSON.stringify(EM_node)+\",\"+JSON.stringify(MEG_node)+\",\"+\nJSON.stringify(T1MEG_node)+\",\"+JSON.stringify(T2MEG_node)+\",\"+JSON.stringify(T3MEG_node)+\",\"+JSON.stringify(T4MEG_node)+\");\"\nmsg.payload = [msn, SY_node,SM_node,EY_node,EM_node,MEG_node,T1MEG_node,T2MEG_node,T3MEG_node,T4MEG_node];\n\n} else if (msg_obj.Title == \"DEG\")\n{\n    var SM_node1= msg_obj.SM;\n    var SD_node= msg_obj.SD;\n    var EM_node1= msg_obj.EM;\n    var ED_node= msg_obj.ED;\n    var DEG_node= msg_obj.DEG;\n    var T1DEG_node= msg_obj.T1DEG;\n    var T2DEG_node= msg_obj.T2DEG;\n    var T3DEG_node= msg_obj.T3DEG;\n    var T4DEG_node= msg_obj.T4DEG;\n\n\nmsg.topic = \"INSERT INTO meter_data.daily_energy_data (msn,date_time,start_month,start_day,end_month,end_day,kwh_consumed,kwh_consumed_t1,kwh_consumed_t2,kwh_consumed_t3,kwh_consumed_t4) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(SM_node1)+\",\"+JSON.stringify(SD_node)+\",\"+JSON.stringify(EM_node1)+\",\"+JSON.stringify(ED_node)+\",\"+JSON.stringify(DEG_node)+\",\"+\nJSON.stringify(T1DEG_node)+\",\"+JSON.stringify(T2DEG_node)+\",\"+JSON.stringify(T3DEG_node)+\",\"+JSON.stringify(T4DEG_node)+\");\"\nmsg.payload = [msn, SM_node1,SD_node,EM_node1,ED_node,DEG_node,T1DEG_node,T2DEG_node,T3DEG_node,T4DEG_node];\n\n} //fahad part\nelse if (msg_obj.Title == \"MSDATA\")\n{\n    var UA_node= msg_obj.UA;\n    var IA_node= msg_obj.IA;\n    var PA_node= msg_obj.PA;\n    var PFA_node= msg_obj.PFA;\n    var FREQ_node= msg_obj.FREQ;\n\t var UB_node= msg_obj.UB;\n    var IB_node= msg_obj.IB;\n    var PB_node= msg_obj.PB;\n    var PFB_node= msg_obj.PFB;\n\t var UC_node= msg_obj.UC;\n    var IC_node= msg_obj.IC;\n    var PC_node= msg_obj.PC;\n    var PFC_node= msg_obj.PFC;\n\n\n\nmsg.topic = \"INSERT INTO meter_data.inst_data_L123 (msn,date_time,voltage_L1,current_L1,kW_L1,PF_L1,Freq_l1,voltage_L2,current_L2,kW_L2,PF_L2,voltage_L3,current_L3,kW_L3,PF_L3) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(UA_node)+\",\"+JSON.stringify(IA_node)+\",\"+JSON.stringify(PA_node)+\",\"+JSON.stringify(PFA_node)+\",\"+JSON.stringify(FREQ_node)+\",\"+JSON.stringify(UB_node)+\",\"+JSON.stringify(IB_node)+\",\"+JSON.stringify(PB_node)+\",\"+JSON.stringify(PFB_node)+\",\"+JSON.stringify(UC_node)+\",\"+JSON.stringify(IC_node)+\",\"+JSON.stringify(PC_node)+\",\"+JSON.stringify(PFC_node)\n+\");\"\nmsg.payload = [msn, UA_node,IA_node,PA_node,PFA_node,FREQ_node,UB_node,IB_node,PB_node,PFB_node,UC_node,IC_node,PC_node,PFC_node];\n\n} //end\nelse if (msg_obj.Title == \"L1\")\n{\n    var UA_node= msg_obj.UA;\n    var IA_node= msg_obj.IA;\n    var PA_node= msg_obj.PA;\n    var PFA_node= msg_obj.PFA;\n    var FREQ_node= msg_obj.FREQ;\n\n\n\nmsg.topic = \"INSERT INTO meter_data.inst_data_L1 (msn,date_time,voltage_L1,current_L1,kW_L1,PF_L1,Freq_l1) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(UA_node)+\",\"+JSON.stringify(IA_node)+\",\"+JSON.stringify(PA_node)+\",\"+JSON.stringify(PFA_node)+\",\"+JSON.stringify(FREQ_node)+\");\"\nmsg.payload = [msn, UA_node,IA_node,PA_node,PFA_node,FREQ_node];\n\n} else if (msg_obj.Title == \"L2\")\n{\n    var UB_node= msg_obj.UB;\n    var IB_node= msg_obj.IB;\n    var PB_node= msg_obj.PB;\n    var PFB_node= msg_obj.PFB;\n    var FREQB_node= msg_obj.FREQ;\n\n\n\nmsg.topic = \"INSERT INTO meter_data.inst_data_L2 (msn,date_time,voltage_L2,current_L2,kW_L2,PF_L2,Freq_l2) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(UB_node)+\",\"+JSON.stringify(IB_node)+\",\"+JSON.stringify(PB_node)+\",\"+JSON.stringify(PFB_node)+\",\"+JSON.stringify(FREQB_node)+\");\"\nmsg.payload = [msn, UB_node,IB_node,PB_node,PFB_node,FREQB_node];\n\n}else if (msg_obj.Title == \"L3\")\n{\n    var UC_node= msg_obj.UC;\n    var IC_node= msg_obj.IC;\n    var PC_node= msg_obj.PC;\n    var PFC_node= msg_obj.PFC;\n    var FREQC_node= msg_obj.FREQ;\n\n\n\nmsg.topic = \"INSERT INTO meter_data.inst_data_L3 (msn,date_time,voltage_L3,current_L3,kW_L3,PF_L3,Freq_l3) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(UC_node)+\",\"+JSON.stringify(IC_node)+\",\"+JSON.stringify(PC_node)+\",\"+JSON.stringify(PFC_node)+\",\"+JSON.stringify(FREQC_node)+\");\"\nmsg.payload = [msn, UC_node,IC_node,PC_node,PFC_node,FREQC_node];\n\n} else if (msg_obj.Title == \"EGRS\")\n{\n    var AGG_energy_reg= msg_obj.APEG;\n    var AGG_energy_reg_t1= msg_obj.T1EG;\n    var AGG_energy_reg_t2= msg_obj.T2EG;\n    var AGG_energy_reg_t3= msg_obj.T3EG;\n    var AGG_energy_reg_t4= msg_obj.T4EG;\n    var RLY_STATUS_node= msg_obj.RLYSTA;\n     var TNO_VALUE=-1;\n    if( msg_obj.TNO==undefined){\n        TNO_VALUE=null;\n    }\n    else{\n     TNO_VALUE= msg_obj.TNO; //fahad part\n    }\n\nmsg.topic = \"INSERT INTO meter_data.energy_relay_status (msn,date_time,energy_reg,energy_reg_t1,energy_reg_t2,energy_reg_t3,energy_reg_t4,relay_status,TNO) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(AGG_energy_reg)+\",\"+JSON.stringify(AGG_energy_reg_t1)+\",\"+JSON.stringify(AGG_energy_reg_t2)+\",\"+JSON.stringify(AGG_energy_reg_t3)+\",\"+JSON.stringify(AGG_energy_reg_t4)+\",\"+JSON.stringify(RLY_STATUS_node)+\",\"+JSON.stringify(TNO_VALUE)+\");\"\nmsg.payload = [msn, AGG_energy_reg,AGG_energy_reg_t1,AGG_energy_reg_t2,AGG_energy_reg_t3,AGG_energy_reg_t4,RLY_STATUS_node,TNO_VALUE];\n\n} else if (msg_obj.Title == \"EG\")\n{\n    var AGG1_energy_reg= msg_obj.APEG;\n    var AGG1_energy_reg_t1= msg_obj.T1EG;\n    var AGG1_energy_reg_t2= msg_obj.T2EG;\n    var AGG1_energy_reg_t3= msg_obj.T3EG;\n    var AGG1_energy_reg_t4= msg_obj.T4EG;\n    var TNO_VALUE=-1;\n    if( msg_obj.TNO==undefined){\n        TNO_VALUE=null;\n    }\n    else{\n     TNO_VALUE= msg_obj.TNO; //fahad part\n    }\n\nmsg.topic = \"INSERT INTO meter_data.energy_relay_status (msn,date_time,energy_reg,energy_reg_t1,energy_reg_t2,energy_reg_t3,energy_reg_t4,TNO) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(AGG1_energy_reg)+\",\"+JSON.stringify(AGG1_energy_reg_t1)+\",\"+JSON.stringify(AGG1_energy_reg_t2)+\",\"+JSON.stringify(AGG1_energy_reg_t3)+\",\"+JSON.stringify(AGG1_energy_reg_t4)+\",\"+JSON.stringify(TNO_VALUE)+\");\"\nmsg.payload = [msn, AGG1_energy_reg,AGG1_energy_reg_t1,AGG1_energy_reg_t2,AGG1_energy_reg_t3,AGG1_energy_reg_t4,TNO_VALUE];\n\n}\nelse if (msg_obj.Title == \"RS\")\n{\n    var RLY1_STATUS_node= msg_obj.RLYSTA;\n\nmsg.topic = \"INSERT INTO meter_data.energy_relay_status (msn,date_time,relay_status) VALUES ('\"\n+msn+\"',(now() + interval 5 hour),\"+JSON.stringify(RLY_STATUS_node)+\");\"\nmsg.payload = [msn,RLY_STATUS_node];\n\n}else \n{\n    \nmsg.topic = \"\"\nmsg.payload = [];\n\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 520,
+        "y": 380,
+        "wires": [
+            [
+                "abba8bb08786f55d",
+                "f508a05151a3703c"
+            ]
+        ]
+    },
+    {
+        "id": "f508a05151a3703c",
+        "type": "debug",
+        "z": "8b8375eb6d616f1b",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 630,
+        "y": 260,
+        "wires": []
+    },
+    {
+        "id": "abba8bb08786f55d",
+        "type": "mysql",
+        "z": "8b8375eb6d616f1b",
+        "mydb": "6936de6f43d07bb1",
+        "name": "meter_data",
+        "x": 730,
+        "y": 360,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "1c19cbbb84d96d75",
+        "type": "mqtt-broker",
+        "name": "mqtt server 2",
+        "broker": "172.23.240.1:1883",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "5",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "6936de6f43d07bb1",
+        "type": "MySQLdatabase",
+        "name": "meter_data",
+        "host": "172.23.240.1",
+        "port": "3306",
+        "db": "test_finalto",
+        "tz": "+05:00",
+        "charset": "UTF8"
+    }
+]

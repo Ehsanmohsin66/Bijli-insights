@@ -1,0 +1,168 @@
+[
+    {
+        "id": "0b79fd966ab47319",
+        "type": "tab",
+        "label": "For Iot_downlink",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "919c879ee2938032",
+        "type": "inject",
+        "z": "0b79fd966ab47319",
+        "name": "Relay Command Request",
+        "props": [
+            {
+                "p": "topic",
+                "vt": "str"
+            },
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "1",
+        "crontab": "",
+        "once": true,
+        "onceDelay": 0.1,
+        "topic": "Select * from meter_relay_commands where cmnd_sent_flag is false and date_time > (now() - interval 2 hour) order by date_time desc limit 1;",
+        "payload": "{cmnd_id,msn,date_time,new_status,cmnd_sent_flag}",
+        "payloadType": "global",
+        "x": 220,
+        "y": 60,
+        "wires": [
+            [
+                "6c3a480a6c86fdb9"
+            ]
+        ]
+    },
+    {
+        "id": "2f14917c561daad9",
+        "type": "function",
+        "z": "0b79fd966ab47319",
+        "name": "Function to process command relay status",
+        "func": "if (msg.payload.length > 0)\n{\nvar cmndid_tmp=msg.payload[0].cmnd_id;\nvar msn=msg.payload[0].msn;\nvar new_status=msg.payload[0].new_status;\nmsg.cmndid=cmndid_tmp;\nmsg.topic=\"meter/iotdn/\"+msn;\n\nmsg.payload=new Object();\nmsg.payload.Title=\"RC\";\nmsg.payload.RLYCTRL=new_status;\n\n\nmsg.qos=2;\n\n\nreturn msg;\n}",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 220,
+        "wires": [
+            [
+                "cfe02a0999f1fc1e",
+                "4cb79dba14291833",
+                "2f7018a99a970c24"
+            ]
+        ]
+    },
+    {
+        "id": "cfe02a0999f1fc1e",
+        "type": "mqtt out",
+        "z": "0b79fd966ab47319",
+        "name": "",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "276806e225fd9c9a",
+        "x": 790,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "4cb79dba14291833",
+        "type": "function",
+        "z": "0b79fd966ab47319",
+        "name": "SET Command processed flag",
+        "func": "var cmndid =msg.cmndid;\nmsg.topic = \"Update meter_data.meter_relay_commands SET cmnd_sent_flag=True where cmnd_id=\"+JSON.stringify(cmndid)+\";\";\n\nmsg.payload = [cmndid];\nreturn msg;",
+        "outputs": 1,
+        "timeout": "",
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 510,
+        "y": 360,
+        "wires": [
+            [
+                "6c3a480a6c86fdb9"
+            ]
+        ]
+    },
+    {
+        "id": "2f7018a99a970c24",
+        "type": "debug",
+        "z": "0b79fd966ab47319",
+        "name": "",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 970,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "6c3a480a6c86fdb9",
+        "type": "mysql",
+        "z": "0b79fd966ab47319",
+        "mydb": "6936de6f43d07bb1",
+        "name": "Meter_relay_commands",
+        "x": 270,
+        "y": 220,
+        "wires": [
+            [
+                "2f14917c561daad9"
+            ]
+        ]
+    },
+    {
+        "id": "276806e225fd9c9a",
+        "type": "mqtt-broker",
+        "name": "MQTT server",
+        "broker": "172.23.240.1",
+        "port": "1883",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": "4",
+        "keepalive": "60",
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "6936de6f43d07bb1",
+        "type": "MySQLdatabase",
+        "name": "meter_data",
+        "host": "172.23.240.1",
+        "port": "3306",
+        "db": "test_finalto",
+        "tz": "+05:00",
+        "charset": "UTF8"
+    }
+]
